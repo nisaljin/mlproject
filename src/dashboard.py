@@ -3,8 +3,13 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import sys
 import time
 from datetime import timedelta
+
+# Add current directory to path to allow imports when running from root
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from data_loader import generate_synthetic_data, get_real_world_stats
 from preprocessing import preprocess_features
 
