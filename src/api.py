@@ -8,7 +8,7 @@ from typing import List
 
 # Initialize App
 app = FastAPI(
-    title="GCPBBB Energy Optimization API",
+    title="Helios AI Energy API",
     description="API for predicting energy consumption and battery balancing signals.",
     version="1.0.0"
 )
@@ -38,6 +38,7 @@ class PredictionInput(BaseModel):
     Temperature: float
     Grid_Consumption: float
     Battery_SoC: float
+    Generated_Power: float
     Hour: int
     Minute: int
     # Lags (Optional - in a real system these would be fetched from a DB)
@@ -98,6 +99,10 @@ def predict(input_data: PredictionInput):
         # Map Signal
         signal_map = {0: 'Discharge', 1: 'Hold', 2: 'Charge'}
         action = signal_map.get(int(pred_signal), "Unknown")
+        
+        # Log Prediction Details
+        print(f"🔮 Input: SoC={input_data.Battery_SoC:.1f}%, Gen={input_data.Generated_Power:.0f}W, Load={input_data.Grid_Consumption:.0f}W")
+        print(f"🤖 Prediction: Action={action}, Forecast Load={pred_consumption:.0f}W")
         
         return {
             "predicted_consumption": float(pred_consumption),

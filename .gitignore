@@ -37,5 +37,6 @@ env/
 
 # Project specific
 output/
-models/
-# dataset/ # Uncomment if you want to exclude the dataset (recommended if large)
+models/*.pkl
+notebooks/models/*.pkl
+dataset/

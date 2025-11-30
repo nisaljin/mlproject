@@ -60,33 +60,33 @@ def train_and_evaluate():
     print("\nTraining Balancing Signal Classifier...")
     
     def get_balancing_signal(row):
-        generation = row['Irradiance'] * 0.2
-        consumption = row['Grid_Consumption'] * 0.1
-        soc = row['Battery_SoC']
+        # Economical Logic:
+        # Net Power = Generation - Consumption
+        # If Net Power > 0 (Surplus) -> Charge (2)
+        # If Net Power < 0 (Deficit) -> Discharge (0)
+        # If Net Power ~ 0 -> Hold (1)
         
-        if soc < 20:
-            return 2 # Charge (Priority)
-        elif soc > 80:
-            return 0 # Discharge (Priority)
-        elif abs(generation - consumption) < 20: # Threshold for balance
-            return 1 # Hold
-        elif generation > consumption:
-            return 2 # Charge (Excess energy)
+        # Use the same system size as dashboard (30 panels)
+        generation = row['Generated_Power'] * 30 
+        consumption = row['Grid_Consumption']
+        net_power = generation - consumption
+        
+        if net_power > 10: # Surplus
+            return 2 # Charge
+        elif net_power < -10: # Deficit
+            return 0 # Discharge
         else:
-            return 0 # Discharge (Deficit)
+            return 1 # Hold
             
-    # Simplified logic for 3 classes
-    # 0: Discharge, 1: Hold, 2: Charge
-    conditions = [
-        (data['Battery_SoC'] < 30), # Low battery -> Charge
-        (data['Battery_SoC'] > 80), # High battery -> Discharge
-        (data['Irradiance'] > 500)  # High generation -> Charge
-    ]
-    choices = [2, 0, 2]
-    # Default to 1 (Hold/Balance) if none match, or maybe just based on net load
-    # Let's use a more complex logic
-    
     data['Signal'] = data.apply(get_balancing_signal, axis=1)
+    
+    # DEBUG: Check Label Distribution
+    print("\n--- DEBUG: Label Distribution ---")
+    print("Low SoC (< 25%) Signals:")
+    print(data[data['Battery_SoC'] < 25]['Signal'].value_counts())
+    print("\nNight Time (Irradiance < 10) Signals:")
+    print(data[data['Irradiance'] < 10]['Signal'].value_counts())
+    print("---------------------------------")
     
     X_train_clf, X_test_clf, y_train_clf, y_test_clf, scaler_clf, feature_cols_clf = prepare_datasets(
         data, 'Signal', is_classification=True
