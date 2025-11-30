@@ -45,7 +45,7 @@ pip install -r requirements.txt
 ## 🏃‍♂️ Running the Project
 
 ### 1. Exploratory Data Analysis (EDA)
-Generate synthetic data and view visualizations (saved to `output/`):
+Generate synthetic data (calibrated with real-world Mendeley data) and view visualizations (saved to `output/`):
 ```bash
 python src/eda.py
 ```

@@ -8,15 +8,18 @@ from sklearn.metrics import mean_absolute_error, accuracy_score, classification_
 # Add src to path
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 
-from data_loader import generate_synthetic_data
+from data_loader import generate_synthetic_data, get_real_world_stats
 from preprocessing import preprocess_features, prepare_datasets
 from model import train_energy_predictor, train_balancing_classifier
 
 def train_and_evaluate():
-    print("Generating data...")
+    print("Loading Real-World Data for Calibration...")
+    real_stats = get_real_world_stats('dataset')
+    
+    print("Generating calibrated synthetic data...")
     # Generate 1 month of data
     n_samples = 1440 * 30 
-    data = generate_synthetic_data(n_samples)
+    data = generate_synthetic_data(n_samples, real_stats=real_stats)
     
     print("Preprocessing data...")
     data = preprocess_features(data)
