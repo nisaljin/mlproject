@@ -1,11 +1,9 @@
+fastapi
+uvicorn
+pydantic
 pandas
 numpy
 scikit-learn
-xgboost
-matplotlib
-seaborn
-streamlit
 joblib
-fastapi
-uvicorn
 requests
+xgboost

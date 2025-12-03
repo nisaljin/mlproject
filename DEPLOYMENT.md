@@ -43,7 +43,7 @@ sudo usermod -aG docker $USER
 
 ## Step 3: Run the Application
 
-Start the application using Docker Compose. This will build the images and start the API (port 8000) and Dashboard (port 8501).
+Start the application using Docker Compose. This will build the images and start the API (port 8001) and Dashboard (port 3000).
 
 ```bash
 docker-compose up --build -d
@@ -55,7 +55,7 @@ Check if containers are running:
 docker ps
 ```
 
-You should see `gcpbbb_backend` and `gcpbbb_frontend` running.
+You should see `helios_backend` and `helios_frontend` running.
 
 ## Step 4: Configure Nginx (Reverse Proxy)
 
@@ -78,9 +78,9 @@ server {
     listen 80;
     server_name yourdomain.com; # Or your EC2 Public IP
 
-    # Frontend (Streamlit)
+    # Frontend (React)
     location / {
-        proxy_pass http://localhost:8501/;
+        proxy_pass http://localhost:3000/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -89,11 +89,9 @@ server {
     }
 
     # Backend API (FastAPI)
-    location /api/ {
-        proxy_pass http://localhost:8000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
+    # Note: Frontend calls http://localhost:8001 directly in current config.
+    # If you want to proxy /api, you need to update frontend config.
+    # For now, ensure port 8001 is open in security group.
 }
 ```
 
@@ -109,11 +107,11 @@ sudo systemctl restart nginx
 ## Step 5: Access the Application
 
 *   **Dashboard**: `http://your-ec2-ip-or-domain/`
-*   **API Docs**: `http://your-ec2-ip-or-domain/api/docs`
+*   **API**: `http://your-ec2-ip-or-domain:8001`
 
 ## Troubleshooting
 
-*   **Ports**: Ensure ports 80 (HTTP), 8000, and 8501 are open in your EC2 Security Group (Inbound Rules).
+*   **Ports**: Ensure ports 80 (HTTP), 3000, and 8001 are open in your EC2 Security Group (Inbound Rules).
 *   **Logs**: Check container logs if something fails:
     ```bash
     docker-compose logs -f

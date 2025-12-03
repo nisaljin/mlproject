@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Helios CI/CD Pipeline
 
 on:
   push:
@@ -7,44 +7,64 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  backend-test-and-build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.11"
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest httpx
 
-    - name: Run Unit Tests (Placeholder)
-      # In a real project, you would run 'pytest tests/'
-      # Here we just check if imports work
+    - name: Run Backend Tests
       run: |
-        python -c "import src.api; import src.dashboard; print('Imports successful')"
+        pytest tests/
 
-    - name: Build Docker Image
+    - name: Build Backend Docker Image
       run: |
-        docker build -t gcpbbb-app .
+        docker build -t helios-backend -f backend/Dockerfile .
 
-    - name: Test Docker Container
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install Frontend Dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build Frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Build Frontend Docker Image
       run: |
-        # Run container in background
-        docker run -d -p 8000:8000 --name test_api gcpbbb-app
-        
-        # Wait for it to start
-        sleep 10
-        
-        # Check health endpoint
-        curl --fail http://localhost:8000/ || exit 1
-        
-        # Stop container
-        docker stop test_api
+        docker build -t helios-frontend -f frontend/Dockerfile ./frontend
+
+  docker-compose-check:
+    needs: [backend-test-and-build, frontend-build]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Verify Docker Compose Build
+      run: |
+        docker-compose config
+        docker-compose build

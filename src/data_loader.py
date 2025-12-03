@@ -49,6 +49,58 @@ def load_mendeley_data(data_dir: str) -> pd.DataFrame:
         
     return combined_data
 
+def load_stability_data(data_dir: str, window_size: int = 1000) -> pd.DataFrame:
+    """
+    Load all CSV files and extract features for Grid Stability Monitoring.
+    Segments the high-frequency data into windows to create multiple samples per file.
+    """
+    samples = []
+    if not os.path.exists(data_dir):
+        print(f"Warning: Data directory not found: {data_dir}")
+        return pd.DataFrame()
+
+    print(f"Loading Stability Data from {data_dir}...")
+    for file in os.listdir(data_dir):
+        if file.endswith('.csv'):
+            file_path = os.path.join(data_dir, file)
+            try:
+                df = pd.read_csv(file_path)
+                
+                # Extract labels
+                filename_parts = file.replace('.csv', '')
+                if len(filename_parts) >= 3:
+                    fault_type = f'F{filename_parts[1]}'  # F0, F1, ..., F7
+                    mode = filename_parts[2]  # L or M
+                    
+                    # Segment Data
+                    num_windows = len(df) // window_size
+                    cols_to_use = ['Vpv', 'Ipv', 'Vdc', 'ia', 'ib', 'ic', 'va', 'vb', 'vc']
+                    
+                    for i in range(num_windows):
+                        start_idx = i * window_size
+                        end_idx = start_idx + window_size
+                        window = df.iloc[start_idx:end_idx]
+                        
+                        features = {
+                            'Fault_Type': fault_type,
+                            'Mode': mode,
+                            'Filename': file
+                        }
+                        
+                        for col in cols_to_use:
+                            if col in window.columns:
+                                features[f'{col}_mean'] = window[col].mean()
+                                features[f'{col}_std'] = window[col].std()
+                                features[f'{col}_max'] = window[col].max()
+                                features[f'{col}_min'] = window[col].min()
+                        
+                        samples.append(features)
+                        
+            except Exception as e:
+                print(f"Error processing {file}: {e}")
+
+    return pd.DataFrame(samples)
+
 def get_real_world_stats(data_dir: str) -> Dict:
     """
     Load Mendeley data and extract key statistics to calibrate the simulation.

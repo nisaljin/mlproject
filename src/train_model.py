@@ -8,9 +8,9 @@ from sklearn.metrics import mean_absolute_error, accuracy_score, classification_
 # Add src to path
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 
-from data_loader import generate_synthetic_data, get_real_world_stats
+from data_loader import generate_synthetic_data, get_real_world_stats, load_stability_data
 from preprocessing import preprocess_features, prepare_datasets
-from model import train_energy_predictor, train_balancing_classifier
+from model import train_energy_predictor, train_balancing_classifier, train_stability_monitor
 
 def train_and_evaluate():
     print("Loading Real-World Data for Calibration...")
@@ -105,6 +105,39 @@ def train_and_evaluate():
     joblib.dump(scaler_clf, 'models/scaler_clf.pkl')
     
     print("Training Complete.")
+
+    # 3. Train Grid Stability Monitor (Real Data)
+    print("\nTraining Grid Stability Monitor (Real Data)...")
+    stability_data = load_stability_data('dataset')
+    
+    if not stability_data.empty:
+        # Prepare Data
+        # Target: Fault_Type (We treat F0 as Stable, F1-F7 as Unstable/Faulty)
+        # Features: All columns ending in _mean, _std, _max, _min
+        
+        feature_cols_stability = [c for c in stability_data.columns if c.endswith(('_mean', '_std', '_max', '_min'))]
+        X_stability = stability_data[feature_cols_stability]
+        y_stability = stability_data['Fault_Type']
+        
+        # Split
+        from sklearn.model_selection import train_test_split
+        X_train_s, X_test_s, y_train_s, y_test_s = train_test_split(X_stability, y_stability, test_size=0.2, random_state=42)
+        
+        # Train
+        model_stability = train_stability_monitor(X_train_s, y_train_s)
+        
+        # Evaluate
+        y_pred_s = model_stability.predict(X_test_s)
+        acc_s = accuracy_score(y_test_s, y_pred_s)
+        print(f"Grid Stability Monitor Accuracy: {acc_s:.4f}")
+        print(classification_report(y_test_s, y_pred_s))
+        
+        # Save
+        joblib.dump(model_stability, 'models/stability_monitor.pkl')
+        # Save feature names for inference
+        joblib.dump(feature_cols_stability, 'models/stability_features.pkl')
+    else:
+        print("No stability data found. Skipping Stability Monitor training.")
 
 if __name__ == "__main__":
     train_and_evaluate()

@@ -61,7 +61,27 @@ The dashboard is built using **Streamlit** (Python) and operates as follows:
 3.  **Live Inference:** For every data point, the system runs the *Preprocessing Pipeline* (scaling/lagging) and queries the models for a prediction.
 4.  **Rendering:** Results are visualized using interactive charts (`st.line_chart`) and status indicators (`st.metric`), updating dynamically as user parameters (e.g., sample size) change.
 
-## 3. Performance & Use Cases
+## 3. MLOps & Deployment
+
+To ensure the system is reproducible, scalable, and production-ready, we implemented a complete MLOps pipeline:
+
+### 3.1 Model Packaging
+- **Dockerization:** The entire application (API + Dashboard) is containerized using `Dockerfile`. This ensures consistency across different environments (Dev, Test, Prod) by isolating dependencies.
+- **API Wrapper:** A **FastAPI** backend (`src/api.py`) serves the models via REST endpoints (`/predict`). This allows external systems (like a real BMS) to consume predictions programmatically.
+
+### 3.2 Deployment Strategy
+- **Cloud Provider:** AWS EC2 (Ubuntu).
+- **Orchestration:** `docker-compose` manages the multi-container setup (Frontend, Backend).
+- **Reverse Proxy:** **Nginx** is configured as a gateway to route traffic to the appropriate service (Port 80 -> Streamlit/FastAPI) and handle security headers.
+
+### 3.3 CI/CD Pipeline
+- **Tool:** GitHub Actions.
+- **Workflow:** The `.github/workflows/main.yml` pipeline triggers on every push to `main`:
+    1.  **Test:** Runs unit tests and verifies imports.
+    2.  **Build:** Builds the Docker image to ensure no build errors.
+    3.  **Verify:** Briefly spins up the container to check the health endpoint.
+
+## 4. Performance & Use Cases
 
 ### 3.1 Model Performance
 The developed models achieved high performance on the validation dataset:
@@ -86,14 +106,14 @@ This solution enables several critical Smart Grid applications:
 2.  **Renewable Smoothing:** Absorbing volatile solar generation spikes (charging) to provide a smooth, consistent power output.
 3.  **Grid Stabilization:** acting as a fast-response buffer to maintain voltage/frequency stability during sudden cloud cover or load changes.
 
-## 4. Conclusion
+## 5. Conclusion
 The developed models demonstrate the feasibility of using ML for:
 - **Load Forecasting:** Accurate short-term prediction of grid demand.
 - **Automated Balancing:** Intelligent decision-making for battery storage to maintain grid stability.
 
 This solution contributes to "AI for Social Good" by promoting efficient renewable energy usage and reducing reliance on fossil fuels.
 
-## 4. Future Work
+## 6. Future Work
 - Integrate real-time weather API.
 - Deploy models on edge devices (e.g., Raspberry Pi) for local control.
 - Expand dataset with real-world battery usage logs.

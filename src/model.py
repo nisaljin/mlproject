@@ -20,6 +20,16 @@ def train_balancing_classifier(X_train, y_train):
     model.fit(X_train, y_train)
     return model
 
+def train_stability_monitor(X_train, y_train):
+    """
+    Train a Random Forest Classifier to monitor Grid Stability (Stable vs Unstable).
+    """
+    # Using Random Forest as it handles tabular data well and is robust
+    from sklearn.ensemble import RandomForestClassifier
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
 def save_model(model, filepath):
     joblib.dump(model, filepath)
 

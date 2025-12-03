@@ -2,23 +2,24 @@ version: '3.8'
 
 services:
   backend:
-    build: .
-    container_name: gcpbbb_backend
-    command: uvicorn src.api:app --host 0.0.0.0 --port 8000
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: helios_backend
     ports:
-      - "8000:8000"
+      - "8001:8000" # Host 8001 -> Container 8000 (Matches frontend API calls)
     volumes:
-      - ./models:/app/models # Mount models so they can be updated without rebuilding
+      - ./models:/app/models
+      - ./dataset:/app/dataset
     restart: always
 
   frontend:
-    build: .
-    container_name: gcpbbb_frontend
-    command: streamlit run src/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: helios_frontend
     ports:
-      - "8501:8501"
-    environment:
-      - API_URL=http://backend:8000
+      - "3000:80" # Host 3000 -> Container 80
     depends_on:
       - backend
     restart: always
