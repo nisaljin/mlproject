@@ -1,16 +1,29 @@
 version: '3.8'
 
 services:
+  trainer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: helios_trainer
+    command: python src/train_model.py
+    volumes:
+      - ./models:/app/models
+      - ./dataset:/app/dataset
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     container_name: helios_backend
     ports:
-      - "8001:8000" # Host 8001 -> Container 8000 (Matches frontend API calls)
+      - "8001:8000" # Host 8001 -> Container 8000
     volumes:
       - ./models:/app/models
       - ./dataset:/app/dataset
+    depends_on:
+      trainer:
+        condition: service_completed_successfully
     restart: always
 
   frontend:
