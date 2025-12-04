@@ -33,7 +33,7 @@ def load_models():
 
 app = FastAPI()
 
-# CORS
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -45,8 +45,21 @@ sudo usermod -aG docker $USER
 
 Start the application using Docker Compose. This will build the images and start the API (port 8001) and Dashboard (port 3000).
 
+### Custom Configuration (Optional)
+You can configure the API URL and Allowed Origins using environment variables:
+
 ```bash
-docker-compose up --build -d
+# Example: Deploying on a custom domain
+export VITE_API_URL="http://api.yourdomain.com"
+
+docker compose up --build -d
+```
+
+If you don't set these, it defaults to `http://localhost:8001` and `http://localhost:3000`.
+
+### Standard Run
+```bash
+docker compose up --build -d
 ```
 
 Check if containers are running:

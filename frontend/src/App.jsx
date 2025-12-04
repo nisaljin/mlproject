@@ -5,6 +5,7 @@ import EnergyFlow from './components/EnergyFlow';
 import TelemetryCharts from './components/TelemetryCharts';
 import SystemLogs from './components/SystemLogs';
 import DashboardMetrics from './components/DashboardMetrics';
+import API_URL from './config';
 
 function App() {
   const [state, setState] = useState(null);
@@ -19,7 +20,7 @@ function App() {
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const res = await axios.get('http://localhost:8001/state');
+        const res = await axios.get(`${API_URL}/state`);
         setConfig({
           weather_factor: res.data.weather_factor,
           string_status: res.data.string_status
@@ -37,7 +38,7 @@ function App() {
     if (isPlaying) {
       interval = setInterval(async () => {
         try {
-          const response = await axios.post('http://localhost:8001/step', {
+          const response = await axios.post(`${API_URL}/step`, {
             action: "Hold",
             steps: speed
           });
@@ -52,7 +53,7 @@ function App() {
   }, [isPlaying]);
 
   const handleReset = async () => {
-    await axios.post('http://localhost:8001/reset');
+    await axios.post(`${API_URL}/reset`);
     setIsPlaying(false);
     setState(null);
   };

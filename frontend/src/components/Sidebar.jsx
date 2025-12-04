@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Pause, RotateCcw, Zap, Cloud, Sun, CloudRain, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
+import API_URL from '../config';
 
 const Sidebar = ({ config, setConfig, isPlaying, setIsPlaying, speed, setSpeed, onReset }) => {
     const [targetString, setTargetString] = React.useState("String 1");
@@ -14,7 +15,7 @@ const Sidebar = ({ config, setConfig, isPlaying, setIsPlaying, speed, setSpeed, 
         newStatus[targetIdx] = false; // Trip the string
 
         try {
-            await axios.post('http://localhost:8001/config', { string_status: newStatus });
+            await axios.post(`${API_URL}/config`, { string_status: newStatus });
             setConfig({ ...config, string_status: newStatus });
         } catch (err) {
             console.error("Failed to inject fault", err);
@@ -24,7 +25,7 @@ const Sidebar = ({ config, setConfig, isPlaying, setIsPlaying, speed, setSpeed, 
     const handleClearFaults = async () => {
         const newStatus = [true, true, true];
         try {
-            await axios.post('http://localhost:8001/config', { string_status: newStatus });
+            await axios.post(`${API_URL}/config`, { string_status: newStatus });
             setConfig({ ...config, string_status: newStatus });
         } catch (err) {
             console.error("Failed to clear faults", err);
@@ -38,7 +39,7 @@ const Sidebar = ({ config, setConfig, isPlaying, setIsPlaying, speed, setSpeed, 
         if (weather.includes("Stormy")) factor = 0.1;
 
         try {
-            await axios.post('http://localhost:8001/config', { weather_factor: factor });
+            await axios.post(`${API_URL}/config`, { weather_factor: factor });
             setConfig({ ...config, weather_factor: factor });
         } catch (err) {
             console.error("Failed to set weather", err);
