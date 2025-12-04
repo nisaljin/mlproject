@@ -14,10 +14,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
+# Copy application code
 COPY backend/ backend/
 COPY src/ src/
-COPY models/ models/
-COPY dataset/ dataset/
 
 # Expose API port
 EXPOSE 8000

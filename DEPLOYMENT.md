@@ -55,7 +55,7 @@ Check if containers are running:
 docker ps
 ```
 
-You should see `helios_backend` and `helios_frontend` running.
+You should see `helios_backend`, `helios_frontend`, and `helios_trainer` (which may exit after training) running.
 
 ## Step 4: Configure Nginx (Reverse Proxy)
 
