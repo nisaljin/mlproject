@@ -270,6 +270,11 @@ def run_single_step(action_override: str):
                 "timestamp": str(current_row['Timestamp'].strftime("%H:%M:%S")),
                 "module": "Guardian",
                 "input": {
+                    "Irradiance": f"{current_row['Irradiance']:.1f} W/m²",
+                    "Temperature": f"{current_row['Temperature']:.1f} °C",
+                    "Generated_Power": f"{result['generated_power']:.1f} W",
+                    "Grid_Consumption": f"{result['grid_consumption']:.1f} W",
+                    "Battery_SoC": f"{sim_state.battery_soc:.1f}%",
                     "V_bus": f"{v_pv:.1f} V",
                     "I_total": f"{i_pv:.1f} A",
                     "Fault_Type": "Line-Line (Simulated)",

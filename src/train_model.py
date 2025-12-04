@@ -12,7 +12,21 @@ from data_loader import generate_synthetic_data, get_real_world_stats, load_stab
 from preprocessing import preprocess_features, prepare_datasets
 from model import train_energy_predictor, train_balancing_classifier, train_stability_monitor
 
-def train_and_evaluate():
+import argparse
+
+def train_and_evaluate(force=False):
+    # Check if models exist
+    required_files = [
+        'models/energy_predictor.pkl',
+        'models/balancing_classifier.pkl',
+        'models/scaler_reg.pkl',
+        'models/scaler_clf.pkl'
+    ]
+    
+    if not force and all(os.path.exists(f) for f in required_files):
+        print("Models already exist. Skipping training. Use --force to override.")
+        return
+
     print("Loading Real-World Data for Calibration...")
     real_stats = get_real_world_stats('dataset')
     
@@ -72,6 +86,7 @@ def train_and_evaluate():
         net_power = generation - consumption
         
         if net_power > 10: # Surplus
+        # ... (rest of logic remains same, just indented if needed, but here we are replacing the function body so indentation is key)
             return 2 # Charge
         elif net_power < -10: # Deficit
             return 0 # Discharge
@@ -140,4 +155,8 @@ def train_and_evaluate():
         print("No stability data found. Skipping Stability Monitor training.")
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--force', action='store_true', help='Force retraining even if models exist')
+    args = parser.parse_args()
+    
+    train_and_evaluate(force=args.force)

@@ -99,6 +99,10 @@ const Sidebar = ({ config, setConfig, isPlaying, setIsPlaying, speed, setSpeed, 
                     >
                         <option>Line-Line (F1)</option>
                         <option>Line-Ground (F2)</option>
+                        <option>Open Circuit (F3)</option>
+                        <option>Series Arc (F4)</option>
+                        <option>Parallel Arc (F5)</option>
+                        <option>Partial Shading (F6)</option>
                         <option>Symmetric (F7)</option>
                     </select>
                     <select
