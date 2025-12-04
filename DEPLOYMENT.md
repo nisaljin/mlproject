@@ -13,7 +13,7 @@ This guide explains how to deploy the GCPBBB Energy Optimization project on an A
 SSH into your EC2 instance and clone the repository:
 
 ```bash
-git clone https://github.com/rahulwork252/SOLARPRED_PROJ_ML.git
+git clone https://github.com/nisaljin/mlproject.git
 cd SOLARPRED_PROJ_ML
 ```
 
