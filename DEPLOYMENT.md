@@ -81,40 +81,56 @@ sudo apt-get install -y nginx
 Create a new Nginx configuration file:
 
 ```bash
-sudo nano /etc/nginx/sites-available/gcpbbb
+sudo nano /etc/nginx/sites-available/helios
 ```
 
-Paste the following configuration (replace `yourdomain.com` with your actual domain or public IP):
+Paste the content from `helios.nginx` (included in the repo):
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com; # Or your EC2 Public IP
+    server_name helios.nisal.dev;
 
-    # Frontend (React)
     location / {
-        proxy_pass http://localhost:3000/;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
     }
+}
 
-    # Backend API (FastAPI)
-    # Note: Frontend calls http://localhost:8001 directly in current config.
-    # If you want to proxy /api, you need to update frontend config.
-    # For now, ensure port 8001 is open in security group.
+server {
+    listen 80;
+    server_name api_helios.nisal.dev;
+
+    location / {
+        proxy_pass http://localhost:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
 }
 ```
 
 Enable the configuration:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/gcpbbb /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/helios /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default  # Remove default config if needed
 sudo nginx -t # Test configuration
 sudo systemctl restart nginx
+```
+
+### Certbot (SSL)
+It is highly recommended to set up SSL (HTTPS) using Certbot:
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d helios.nisal.dev -d api_helios.nisal.dev
 ```
 
 ## Step 5: Access the Application
