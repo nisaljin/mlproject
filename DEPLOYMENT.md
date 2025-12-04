@@ -45,17 +45,22 @@ sudo usermod -aG docker $USER
 
 Start the application using Docker Compose. This will build the images and start the API (port 8001) and Dashboard (port 3000).
 
-### Custom Configuration (Optional)
-You can configure the API URL and Allowed Origins using environment variables:
+### Configuration (Required)
+Since the frontend runs in the user's browser, it needs to know where to find the backend API. You **MUST** set the `VITE_API_URL` environment variable before building.
 
+**For Production (helios.nisal.dev):**
 ```bash
-# Example: Deploying on a custom domain
-export VITE_API_URL="http://api.yourdomain.com"
-
+export VITE_API_URL="http://api_helios.nisal.dev"
 docker compose up --build -d
 ```
 
-If you don't set these, it defaults to `http://localhost:8001` and `http://localhost:3000`.
+**For Testing (IP Address):**
+```bash
+export VITE_API_URL="http://<YOUR_VM_IP>:8001"
+docker compose up --build -d
+```
+
+If you do not set this, it will default to `http://localhost:8001`, which will **not work** when accessing the site from a different computer.
 
 ### Standard Run
 ```bash
@@ -125,13 +130,8 @@ sudo nginx -t # Test configuration
 sudo systemctl restart nginx
 ```
 
-### Certbot (SSL)
-It is highly recommended to set up SSL (HTTPS) using Certbot:
-
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d helios.nisal.dev -d api_helios.nisal.dev
-```
+### SSL/HTTPS
+Since you are using Cloudflare, ensure your SSL/TLS encryption mode is set to **Flexible** or **Full** in the Cloudflare dashboard. The Nginx config above listens on port 80, which works perfectly with Cloudflare's proxy.
 
 ## Step 5: Access the Application
 
