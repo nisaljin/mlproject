@@ -7,12 +7,13 @@ export default {
     theme: {
         extend: {
             colors: {
-                'helios-dark': '#0f172a',
-                'helios-card': '#1e293b',
-                'helios-accent': '#38bdf8',
-                'helios-success': '#22c55e',
-                'helios-danger': '#ef4444',
-                'helios-warning': '#eab308',
+                'helios-dark': '#050505',
+                'helios-card': '#121212',
+                'helios-accent': '#FFD700',
+                'helios-blue': '#2979FF',
+                'helios-success': '#00E676',
+                'helios-danger': '#FF1744',
+                'helios-warning': '#FFAB00',
             },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],

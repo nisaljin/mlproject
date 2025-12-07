@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-helios-dark: #0f172a;
-  --color-helios-card: #1e293b;
-  --color-helios-accent: #38bdf8;
-  --color-helios-success: #22c55e;
-  --color-helios-danger: #ef4444;
-  --color-helios-warning: #eab308;
+  --color-helios-dark: #050505;
+  --color-helios-card: #121212;
+  --color-helios-accent: #FFD700;
+  --color-helios-blue: #2979FF;
+  --color-helios-success: #00E676;
+  --color-helios-danger: #FF1744;
+  --color-helios-warning: #FFAB00;
 
   --font-sans: 'Inter', sans-serif;
 }
