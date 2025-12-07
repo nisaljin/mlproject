@@ -1,6 +1,9 @@
 # Use official Python runtime
 FROM python:3.11-slim
 
+# Set unbuffered output for easier debugging
+ENV PYTHONUNBUFFERED=1
+
 # Set working directory
 WORKDIR /app
 
