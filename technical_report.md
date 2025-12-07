@@ -34,6 +34,10 @@ Two non-deep learning models were developed:
     - **Goal:** Predict battery action (0: Discharge, 1: Hold, 2: Charge).
     - **Logic:** Based on Battery SoC limits (<20% Charge, >80% Discharge) and Net Energy balance.
     - **Performance:** High accuracy on synthetic test set.
+3.  **Grid Stability Monitor (Random Forest Classifier):**
+    - **Goal:** Detect and classify grid faults (e.g., Line-Line, Open Circuit) in real-time.
+    - **Logic:** Analyzes high-frequency electrical signatures (Voltage, Current, Harmonics) to identify anomalies.
+    - **Training Data:** Real-world Mendeley GPVS-Faults dataset.
 
 ### 2.4 System Architecture (Pipeline)
 The automated pipeline operates in a continuous loop:
@@ -48,18 +52,18 @@ The automated pipeline operates in a continuous loop:
 4.  **Action:** The decision signal is sent to the Battery Management System (BMS) to execute the control.
 
 ### 2.5 Dashboard Design
-The Streamlit dashboard serves as the "Control Room" interface:
+The React-based dashboard serves as the "Control Room" interface:
 - **Real-time Graphs:** Live line charts showing the synchronization of Solar Generation (Orange) vs. Grid Consumption (Blue).
 - **Battery Monitor:** A gauge or time-series plot tracking the State of Charge (SoC) to ensure it stays within safe limits (20%-80%).
 - **Prediction Panel:** A dedicated section displaying the *Forecasted Load* and the *Recommended Action* (e.g., "High Demand Predicted -> DISCHARGING").
 - **Stability Indicator:** A metric showing the simulated "Grid Stability Score" (80-100%), providing an at-a-glance health check of the system.
 
 #### Dashboard Implementation
-The dashboard is built using **Streamlit** (Python) and operates as follows:
-1.  **Initialization:** On startup, it loads the trained models (`.pkl` files) into memory using `@st.cache_resource` to ensure fast performance.
-2.  **Data Stream:** It generates or loads the latest batch of sensor data (simulating a real-time feed).
-3.  **Live Inference:** For every data point, the system runs the *Preprocessing Pipeline* (scaling/lagging) and queries the models for a prediction.
-4.  **Rendering:** Results are visualized using interactive charts (`st.line_chart`) and status indicators (`st.metric`), updating dynamically as user parameters (e.g., sample size) change.
+The dashboard is built using **React** and operates as follows:
+1.  **Initialization:** On startup, the frontend connects to the FastAPI backend.
+2.  **Data Stream:** The backend generates or loads the latest batch of sensor data (simulating a real-time feed).
+3.  **Live Inference:** For every data point, the backend runs the *Preprocessing Pipeline* (scaling/lagging) and queries the models for a prediction.
+4.  **Rendering:** Results are visualized using interactive charts (e.g., Recharts) and status indicators, updating dynamically as the backend pushes new state.
 
 ## 3. MLOps & Deployment
 
@@ -70,9 +74,9 @@ To ensure the system is reproducible, scalable, and production-ready, we impleme
 - **API Wrapper:** A **FastAPI** backend (`src/api.py`) serves the models via REST endpoints (`/predict`). This allows external systems (like a real BMS) to consume predictions programmatically.
 
 ### 3.2 Deployment Strategy
-- **Cloud Provider:** AWS EC2 (Ubuntu).
+- **Cloud Provider:** Google Cloud Platform (GCP) Compute Engine (Ubuntu).
 - **Orchestration:** `docker-compose` manages the multi-container setup (Frontend, Backend).
-- **Reverse Proxy:** **Nginx** is configured as a gateway to route traffic to the appropriate service (Port 80 -> Streamlit/FastAPI) and handle security headers.
+- **Reverse Proxy:** **Nginx** is configured as a gateway to route traffic to the appropriate service (Port 80 -> React Frontend / FastAPI Backend) and handle security headers.
 
 ### 3.3 CI/CD Pipeline
 - **Tool:** GitHub Actions.
@@ -91,6 +95,9 @@ The developed models achieved high performance on the validation dataset:
 2.  **Balancing Classifier (XGBoost):**
     - **Metric:** Accuracy of **100%** (on synthetic test set).
     - **Interpretation:** The model successfully learned the complex logic for battery management (Charge vs. Discharge vs. Hold) based on the multi-variable input state (SoC, Net Energy). *Note: Real-world accuracy would vary with noise, but this validates the logic.*
+3.  **Grid Stability Monitor (Random Forest):**
+    - **Metric:** High Accuracy (>95%) on held-out real-world test set.
+    - **Interpretation:** The model effectively distinguishes between "Stable" operation and 7 different fault types (F1-F7), enabling the "Guardian" module to isolate faults immediately.
 
 ### 3.2 Model Outputs
 The system provides two key actionable outputs:

@@ -3,7 +3,11 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-from sklearn.metrics import mean_absolute_error, accuracy_score, classification_report
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import mean_absolute_error, accuracy_score, classification_report, roc_curve, auc, precision_recall_curve, average_precision_score, confusion_matrix
+from sklearn.preprocessing import label_binarize
+from itertools import cycle
 
 # Add src to path
 sys.path.append(os.path.join(os.getcwd(), 'src'))
@@ -13,6 +17,93 @@ from preprocessing import preprocess_features, prepare_datasets
 from model import train_energy_predictor, train_balancing_classifier, train_stability_monitor
 
 import argparse
+
+def plot_classification_metrics(model, X_test, y_test, model_name, feature_names=None, output_dir='output'):
+    """
+    Generates and saves ROC, Precision-Recall, and Feature Importance plots.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 1. Feature Importance
+    if hasattr(model, 'feature_importances_') and feature_names is not None:
+        plt.figure(figsize=(10, 6))
+        importances = model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        
+        plt.title(f'Feature Importance - {model_name}')
+        plt.bar(range(X_test.shape[1]), importances[indices], align='center')
+        plt.xticks(range(X_test.shape[1]), [feature_names[i] for i in indices], rotation=45, ha='right')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f'{model_name.lower().replace(" ", "_")}_feature_importance.png'))
+        plt.close()
+
+    # 2. ROC and PR Curves (Multiclass)
+    # Binarize the output
+    classes = np.unique(y_test)
+    n_classes = len(classes)
+    y_test_bin = label_binarize(y_test, classes=classes)
+    
+    # Get probabilities
+    if hasattr(model, 'predict_proba'):
+        y_score = model.predict_proba(X_test)
+    else:
+        print(f"Model {model_name} does not support predict_proba, skipping ROC/PR curves.")
+        return
+
+    # ROC Curve
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_score[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    plt.figure(figsize=(10, 8))
+    colors = cycle(['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray'])
+    for i, color in zip(range(n_classes), colors):
+        plt.plot(fpr[i], tpr[i], color=color, lw=2,
+                 label=f'ROC curve of class {classes[i]} (area = {roc_auc[i]:.2f})')
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'Receiver Operating Characteristic (ROC) - {model_name}')
+    plt.legend(loc="lower right")
+    plt.savefig(os.path.join(output_dir, f'{model_name.lower().replace(" ", "_")}_roc.png'))
+    plt.close()
+
+    # Precision-Recall Curve
+    precision = dict()
+    recall = dict()
+    average_precision = dict()
+    for i in range(n_classes):
+        precision[i], recall[i], _ = precision_recall_curve(y_test_bin[:, i], y_score[:, i])
+        average_precision[i] = average_precision_score(y_test_bin[:, i], y_score[:, i])
+
+    plt.figure(figsize=(10, 8))
+    for i, color in zip(range(n_classes), colors):
+        plt.plot(recall[i], precision[i], color=color, lw=2,
+                 label=f'PR curve of class {classes[i]} (AP = {average_precision[i]:.2f})')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title(f'Precision-Recall Curve - {model_name}')
+    plt.legend(loc="lower left")
+    plt.savefig(os.path.join(output_dir, f'{model_name.lower().replace(" ", "_")}_pr.png'))
+    plt.close()
+    
+    # 3. Confusion Matrix
+    y_pred = model.predict(X_test)
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
+    plt.title(f'Confusion Matrix - {model_name}')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.savefig(os.path.join(output_dir, f'{model_name.lower().replace(" ", "_")}_confusion_matrix.png'))
+    plt.close()
 
 def train_and_evaluate(force=False):
     # Check if models exist
@@ -58,6 +149,19 @@ def train_and_evaluate(force=False):
     mae = mean_absolute_error(y_test_reg, y_pred_reg)
     print(f"Grid Consumption MAE: {mae:.4f}")
     
+    # Plot Feature Importance for Regressor
+    if hasattr(model_reg, 'feature_importances_'):
+        plt.figure(figsize=(10, 6))
+        importances = model_reg.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        plt.title('Feature Importance - Energy Predictor')
+        plt.bar(range(X_test_reg.shape[1]), importances[indices], align='center')
+        plt.xticks(range(X_test_reg.shape[1]), [feature_cols_reg[i] for i in indices], rotation=45, ha='right')
+        plt.tight_layout()
+        os.makedirs('output', exist_ok=True)
+        plt.savefig('output/energy_predictor_feature_importance.png')
+        plt.close()
+    
     # Save model and scaler
     os.makedirs('models', exist_ok=True)
     joblib.dump(model_reg, 'models/energy_predictor.pkl')
@@ -65,11 +169,6 @@ def train_and_evaluate(force=False):
     
     # 2. Train Balancing Classifier
     # Target: 0 (Discharge), 1 (Hold), 2 (Charge)
-    # Logic: 
-    # If SoC < 20 and Generation < Consumption -> Charge (from Grid) -> Label 2
-    # If SoC > 80 and Generation > Consumption -> Discharge (to Grid) -> Label 0
-    # Else -> Hold/Balance -> Label 1
-    # This is a heuristic to create labels for training
     
     print("\nTraining Balancing Signal Classifier...")
     
@@ -86,7 +185,6 @@ def train_and_evaluate(force=False):
         net_power = generation - consumption
         
         if net_power > 10: # Surplus
-        # ... (rest of logic remains same, just indented if needed, but here we are replacing the function body so indentation is key)
             return 2 # Charge
         elif net_power < -10: # Deficit
             return 0 # Discharge
@@ -115,6 +213,9 @@ def train_and_evaluate(force=False):
     print(f"Balancing Classifier Accuracy: {acc:.4f}")
     print(classification_report(y_test_clf, y_pred_clf))
     
+    # Plot Advanced Metrics
+    plot_classification_metrics(model_clf, X_test_clf, y_test_clf, "Balancing Classifier", feature_names=feature_cols_clf)
+    
     # Save model and scaler
     joblib.dump(model_clf, 'models/balancing_classifier.pkl')
     joblib.dump(scaler_clf, 'models/scaler_clf.pkl')
@@ -123,7 +224,9 @@ def train_and_evaluate(force=False):
 
     # 3. Train Grid Stability Monitor (Real Data)
     print("\nTraining Grid Stability Monitor (Real Data)...")
-    stability_data = load_stability_data('dataset')
+    # MATCH INFERENCE WINDOW: Inference uses a buffer of 20 steps.
+    # Training must use the same window size to learn the correct feature distributions (std, min, max).
+    stability_data = load_stability_data('dataset', window_size=20)
     
     if not stability_data.empty:
         # Prepare Data
@@ -146,6 +249,9 @@ def train_and_evaluate(force=False):
         acc_s = accuracy_score(y_test_s, y_pred_s)
         print(f"Grid Stability Monitor Accuracy: {acc_s:.4f}")
         print(classification_report(y_test_s, y_pred_s))
+        
+        # Plot Advanced Metrics
+        plot_classification_metrics(model_stability, X_test_s, y_test_s, "Grid Stability Monitor", feature_names=feature_cols_stability)
         
         # Save
         joblib.dump(model_stability, 'models/stability_monitor.pkl')

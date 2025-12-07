@@ -1,0 +1,207 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\geometry{margin=1in}
+
+\title{\textbf{Optimizing Renewable Energy Integration in GCPBBB Systems using Machine Learning}}
+\author{Nisal Jinadasa}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report details the development and implementation of a Machine Learning-based optimization system for Grid-Connected Photo Sensor Based Battery Balancing (GCPBBB) architectures. The system integrates three distinct models: an Energy Predictor for demand forecasting, a Balancing Classifier for battery management, and a Grid Stability Monitor for real-time fault detection. Utilizing a hybrid dataset of real-world electrical measurements and calibrated synthetic operational data, the system achieves high predictive accuracy (MAE $\approx$ 42W) and robust classification performance ($>$99\% accuracy). A modern React-based dashboard serves as the central control interface, providing real-time visualization and decision support.
+\end{abstract}
+
+\section{Introduction}
+The integration of renewable energy sources, particularly solar PV, into the grid presents challenges related to intermittency and stability. Grid-Connected Photo Sensor Based Battery Balancing (GCPBBB) systems aim to mitigate these issues. This project enhances GCPBBB architectures by applying Machine Learning (ML) to optimize energy distribution, ensure battery health, and monitor grid stability in real-time.
+
+\section{Methodology}
+
+\subsection{Data Acquisition and Preparation}
+To train robust models, a hybrid data strategy was employed, combining real-world fault data with high-fidelity synthetic operational data.
+
+\subsubsection{Real-World Calibration Data}
+\begin{itemize}
+    \item \textbf{Source:} Mendeley GPVS-Faults Dataset.
+    \item \textbf{Composition:} 16 CSV files containing high-frequency electrical measurements (Voltage, Current) for various operating states (Stable F0, Faults F1-F7).
+    \item \textbf{Calibration Statistics:}
+    \begin{itemize}
+        \item Peak Power (95th percentile): 215.71 W
+        \item Mean PV Voltage: 88.10 V
+    \end{itemize}
+    These statistics were used to calibrate the synthetic data generator to ensure realistic physical constraints.
+\end{itemize}
+
+\subsubsection{Synthetic Training Data}
+A comprehensive dataset representing one month of minute-level operation (43,200 samples) was generated to simulate the GCPBBB environment.
+\begin{itemize}
+    \item \textbf{Solar Irradiance:} Modeled using diurnal sine waves with stochastic cloud cover noise.
+    \item \textbf{Grid Consumption:} Simulated based on typical residential load profiles with morning and evening peaks.
+    \item \textbf{Battery SoC:} Calculated dynamically based on the net energy flow (Generation vs. Consumption).
+    \item \textbf{Target Labels:} A "Balancing Signal" was derived based on economic and physical logic:
+    \begin{itemize}
+        \item \textbf{0 (Discharge):} Deficit power or high demand.
+        \item \textbf{1 (Hold):} Balanced system or idle state.
+        \item \textbf{2 (Charge):} Surplus power or low demand.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Model Development}
+Three specialized non-deep learning models were developed to address specific system needs.
+
+\subsubsection{1. Grid Consumption Predictor (Planner Module)}
+\begin{itemize}
+    \item \textbf{Algorithm:} Random Forest Regressor.
+    \item \textbf{Objective:} Forecast grid demand for the next time step ($t+1$) to enable proactive battery scheduling.
+    \item \textbf{Features:} Lagged consumption, generated power, time-of-day (cyclic), temperature, irradiance.
+\end{itemize}
+
+\subsubsection{2. Balancing Signal Classifier (Planner Module)}
+\begin{itemize}
+    \item \textbf{Algorithm:} XGBoost Classifier.
+    \item \textbf{Objective:} Determine the optimal battery action (Charge, Discharge, Hold) based on current system state and predicted demand.
+    \item \textbf{Features:} Battery SoC, Net Energy, Predicted Consumption, Irradiance.
+\end{itemize}
+
+\subsubsection{3. Grid Stability Monitor (Guardian Module)}
+\begin{itemize}
+    \item \textbf{Algorithm:} Random Forest Classifier.
+    \item \textbf{Objective:} Real-time detection and classification of grid faults.
+    \item \textbf{Features:} Statistical aggregates (Mean, Std, Max, Min) of high-frequency voltage and current signals over a rolling window.
+    \item \textbf{Classes:} F0 (Stable), F1-F7 (Specific Fault Types like Line-Line, Open Circuit).
+\end{itemize}
+
+\section{System Architecture and Dashboard}
+
+\subsection{The "Control Room" Dashboard}
+The user interface is built using \textbf{React}, designed to function as a real-time "Control Room" for grid operators. It communicates with a \textbf{FastAPI} backend to integrate the three models into a cohesive workflow.
+
+\subsubsection{Workflow Integration}
+\begin{enumerate}
+    \item \textbf{Data Ingestion:} The backend ingests a stream of sensor data (simulated or real).
+    \item \textbf{Preprocessing:} Data is cleaned, scaled, and feature-engineered (e.g., lag generation) in real-time by the Python backend.
+    \item \textbf{Inference Pipeline:}
+    \begin{itemize}
+        \item The \textit{Stability Monitor} first checks the electrical signature. If a fault is detected (e.g., F1), a "Protection Relay" signal is triggered, isolating the system.
+        \item If stable, the \textit{Energy Predictor} forecasts the next-step load.
+        \item The \textit{Balancing Classifier} uses this forecast and current SoC to decide the optimal battery action.
+    \end{itemize}
+    \item \textbf{Visualization:} The React frontend polls the backend state to update live charts for Solar vs. Load, Battery SoC, and displays the current System Status and Predicted Action.
+\end{enumerate}
+
+\section{Performance Results}
+
+\subsection{Grid Consumption Predictor}
+\begin{itemize}
+    \item \textbf{Metric:} Mean Absolute Error (MAE)
+    \item \textbf{Result:} \textbf{42.11 W}
+    \item \textbf{Analysis:} The model accurately tracks diurnal patterns. An error of ~42W is negligible compared to typical household loads (200-2000W), making it highly effective for short-term planning.
+\end{itemize}
+
+\subsection{Balancing Signal Classifier}
+\begin{itemize}
+    \item \textbf{Overall Accuracy:} \textbf{99.77\%}
+    \item \textbf{Key Insight:} The model achieved 100\% precision and recall for the critical "Charge" and "Discharge" classes, ensuring that the battery is never charged during a deficit or discharged during a surplus unnecessarily.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Balancing Classifier Performance}
+\begin{tabular}{lcccc}
+\toprule
+Class & Precision & Recall & F1-Score & Support \\
+\midrule
+0 (Discharge) & 1.00 & 1.00 & 1.00 & 4473 \\
+1 (Hold) & 0.71 & 0.43 & 0.54 & 23 \\
+2 (Charge) & 1.00 & 1.00 & 1.00 & 4141 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Grid Stability Monitor}
+\begin{itemize}
+    \item \textbf{Overall Accuracy:} \textbf{99.77\%}
+    \item \textbf{Analysis:} The model successfully distinguishes between stable operation and 7 distinct fault types. This high accuracy is critical for the "Guardian" module's safety function.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Grid Stability Monitor Performance}
+\begin{tabular}{lcccc}
+\toprule
+Fault Type & Precision & Recall & F1-Score & Support \\
+\midrule
+F0 (Stable) & 1.00 & 1.00 & 1.00 & 47 \\
+F1 (Fault) & 1.00 & 0.98 & 0.99 & 58 \\
+F2 (Fault) & 1.00 & 1.00 & 1.00 & 54 \\
+F3-F7 (Faults) & 1.00 & 1.00 & 1.00 & 274 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{System Implementation \& DevOps}
+
+\subsection{Codebase Structure}
+The project follows a modular microservices architecture, organized as follows:
+\begin{itemize}
+    \item \textbf{backend/}: Contains the FastAPI application logic (\texttt{main.py}) and Docker configuration.
+    \item \textbf{frontend/}: Hosts the React application source code, UI components, and build scripts.
+    \item \textbf{src/}: The core Machine Learning module containing:
+    \begin{itemize}
+        \item \texttt{train\_model.py}: Orchestrates the training pipeline.
+        \item \texttt{model.py}: Defines the Random Forest and XGBoost architectures.
+        \item \texttt{data\_loader.py} \& \texttt{preprocessing.py}: Handles data ingestion and feature engineering.
+    \end{itemize}
+    \item \textbf{models/}: Stores the serialized trained models (\texttt{.pkl} files).
+    \item \textbf{.github/workflows/}: CI/CD configuration files.
+    \item \textbf{deploy/}: Deployment configurations including \texttt{docker-compose.yml} and Nginx settings.
+\end{itemize}
+
+\subsection{Backend Training \& Communication}
+\subsubsection{Training Pipeline}
+The backend training process is automated via \texttt{src/train\_model.py}. It performs the following steps:
+\begin{enumerate}
+    \item \textbf{Data Loading:} Ingests real-world fault data and generates synthetic operational data.
+    \item \textbf{Preprocessing:} Applies scaling and feature extraction (e.g., lag features).
+    \item \textbf{Model Training:} Sequentially trains the Energy Predictor, Balancing Classifier, and Stability Monitor.
+    \item \textbf{Serialization:} Saves the trained models and scalers using \texttt{joblib} for efficient inference.
+\end{enumerate}
+
+\subsubsection{Frontend-Backend Communication}
+The React frontend communicates with the FastAPI backend via a RESTful API:
+\begin{itemize}
+    \item \textbf{Polling Mechanism:} The frontend polls the \texttt{/state} endpoint to retrieve the latest simulation status (SoC, Load, Generation).
+    \item \textbf{Simulation Control:} User actions (e.g., Start/Stop, Reset) are sent via POST requests to \texttt{/step} and \texttt{/reset}.
+    \item \textbf{Data Flow:} The backend processes these requests, runs the ML inference using the loaded models, and returns the updated system state as a JSON response.
+\end{itemize}
+
+\subsection{Deployment \& CI/CD}
+\subsubsection{Deployment Architecture}
+The system is deployed on a \textbf{Google Cloud Platform (GCP) Compute Engine} instance using a containerized approach:
+\begin{itemize}
+    \item \textbf{Docker Compose:} Orchestrates the \texttt{backend} and \texttt{frontend} containers, ensuring environment consistency.
+    \item \textbf{Nginx Reverse Proxy:} Acts as the gateway, routing traffic to the appropriate container (Port 80 $\rightarrow$ React Frontend / FastAPI Backend) and handling SSL termination via Cloudflare.
+\end{itemize}
+
+\subsubsection{CI/CD Pipeline}
+A robust CI/CD pipeline is implemented using \textbf{GitHub Actions} (\verb|.github/workflows/main.yml|) to ensure code quality and reliability:
+\begin{enumerate}
+    \item \textbf{Backend Testing:} Triggers on every push to \texttt{main}. Sets up Python environment, installs dependencies, and runs unit tests using \texttt{pytest}.
+    \item \textbf{Build Verification:} Builds both Backend and Frontend Docker images to verify that the application is deployable.
+    \item \textbf{Docker Compose Check:} Validates the composition configuration to prevent deployment failures.
+\end{enumerate}
+
+\section{Conclusion}
+The developed system demonstrates the efficacy of Machine Learning in optimizing GCPBBB systems. By combining accurate demand forecasting with intelligent battery management and robust fault detection, the solution ensures efficient renewable energy utilization and grid stability. The high performance metrics across all three models validate the hybrid data approach and the selected model architectures.
+
+\end{document}

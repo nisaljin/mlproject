@@ -10,6 +10,7 @@ services:
     volumes:
       - ./models:/app/models
       - ./dataset:/app/dataset
+      - ./output:/app/output
 
   backend:
     build:
