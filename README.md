@@ -62,6 +62,11 @@ Start the interactive Streamlit dashboard to visualize real-time data and model 
 streamlit run src/dashboard.py
 ```
 
+### 4. Running with Docker 🐳
+For a consistent environment, you can run the entire stack (Frontend + Backend) using Docker.
+See the **[Docker Setup & Usage Guide](DOCKER_README.md)** for detailed instructions.
+
+
 ## 📊 Dashboard Features
 *   **Real-Time Simulation:** Toggle the "Enable Real-Time Simulation" checkbox to simulate a live data feed.
 *   **Energy Balance:** Visual comparison of Solar Generation vs. Grid Consumption.

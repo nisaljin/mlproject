@@ -41,3 +41,4 @@ models/*.pkl
 notebooks/models/*.pkl
 dataset/
 
+.env
