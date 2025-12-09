@@ -46,31 +46,61 @@ function App() {
   }, []);
 
   // Simulation Loop
+  // WebSocket Connection
+  const ws = React.useRef(null);
+
   useEffect(() => {
-    let interval;
-    if (isPlaying) {
-      interval = setInterval(async () => {
-        try {
-          const response = await axios.post(`${API_URL}/step`, {
-            action: "Hold",
-            steps: speed
-          });
-          setState(response.data);
-        } catch (error) {
-          console.error("Step failed", error);
-          setIsPlaying(false);
-        }
-      }, 100); // 100ms speed
+    // Convert HTTP URL to WS URL
+    const wsUrl = API_URL.replace(/^http/, 'ws') + '/ws';
+    ws.current = new WebSocket(wsUrl);
+
+    ws.current.onopen = () => {
+      console.log('Connected to WebSocket');
+      // Sync initial state
+      if (ws.current) {
+        ws.current.send(JSON.stringify({
+          action: isPlaying ? "start" : "stop",
+          speed: speed
+        }));
+      }
+    };
+
+    ws.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setState(data);
+    };
+
+    ws.current.onclose = () => {
+      console.log('WebSocket Disconnected');
+    };
+
+    return () => {
+      if (ws.current) ws.current.close();
+    };
+  }, []);
+
+  // Sync Controls with WebSocket
+  useEffect(() => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        action: isPlaying ? "start" : "stop",
+        speed: speed
+      }));
     }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying, speed]);
+
+  // Remove old interval loop
+  // (Replaced by the above WS logic)
 
   const handleReset = async () => {
-    await axios.post(`${API_URL}/reset`);
+    // Send reset via WS if available for immediate update
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({ action: "reset" }));
+    } else {
+      // Fallback
+      await axios.post(`${API_URL}/reset`);
+    }
     setIsPlaying(false);
-    // Re-fetch state to clear dashboard but keep it visible (clean slate)
-    const res = await axios.post(`${API_URL}/step`, { action: "Hold", steps: 1 });
-    setState(res.data);
   };
 
   // Mock fault data if backend not ready yet, but prioritize state

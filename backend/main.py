@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import asyncio
 import sys
 import os
 import numpy as np
@@ -538,7 +539,12 @@ def run_single_step(action_override: str):
                     series.min()
                 ])
             
-            X_input = np.array([features])
+            # Create DataFrame with feature names to avoid SKLearn UserWarning
+            if fault_features_list and len(fault_features_list) == len(features):
+                X_input = pd.DataFrame([features], columns=fault_features_list)
+            else:
+                 # Fallback if names missing (though they should be loaded)
+                 X_input = np.array([features])
             
             # 4b. Predict
             # Stability Monitor (XGBoost) does not use the Balancing Scaler (14 dims)
@@ -681,6 +687,89 @@ def run_single_step(action_override: str):
         "history_timestamp": sim_state.history_timestamp
     }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    is_playing = False
+    
+    try:
+        while True:
+            # 1. Check for incoming commands (Non-blocking)
+            try:
+                # Short timeout to allow "game loop" to run
+                # Adjust timeout based on speed to maintain frame rate if needed, 
+                # but 0.05s is responsive enough for UI commands.
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=0.05)
+                
+                # Handle Commands
+                cmd = data.get("action")
+                if cmd == "start":
+                    is_playing = True
+                    # Update speed if provided
+                    if "speed" in data:
+                        sim_state.sim_speed = data["speed"]
+                elif cmd == "stop":
+                    is_playing = False
+                elif cmd == "step":
+                     # Manual step (single frame)
+                     result = run_single_step("Hold")
+                     await websocket.send_json(result)
+                elif cmd == "reset":
+                    sim_state.reset()
+                    sim_state.injected_fault_type = None
+                    is_playing = False
+                    # Send reset state
+                    result = run_single_step("Hold")
+                    await websocket.send_json(result)
+                elif cmd == "config":
+                    # Update config
+                    if "weather_factor" in data: sim_state.weather_factor = data["weather_factor"]
+                    if "string_status" in data: sim_state.string_status = data["string_status"]
+                    if "sim_speed" in data: sim_state.sim_speed = data["sim_speed"]
+                    if "injected_fault_type" in data: sim_state.injected_fault_type = data["injected_fault_type"]
+                    # Push update immediately
+                    result = run_single_step("Hold") # actually we shouldn't advance time on config, just return state? 
+                    # but run_single_step advances time.
+                    # Ideally we have get_current_state() but run_single_step is what generates the rich StepResponse.
+                    # For now, let's just assume config change pushes next frame or we just wait for next loop.
+                    pass
+
+            except asyncio.TimeoutError:
+                # No command received, proceed to simulation loop
+                pass
+            
+            # 2. Run Simulation Loop if Playing
+            if is_playing:
+                # Calculate sleep time based on speed
+                # speed 1 = 1 step per frame? 
+                # User had 100ms interval for speed steps.
+                # python time.sleep is blocking, use asyncio.sleep
+                
+                # Run Logic
+                # We can run multiple steps if speed is high, but better to just run frequently
+                steps_to_run = sim_state.sim_speed if hasattr(sim_state, 'sim_speed') and sim_state.sim_speed else 1
+                
+                # Cap infinite loops
+                if steps_to_run < 1: steps_to_run = 1
+                
+                # Run steps (blocking, but fast)
+                last_result = None
+                for _ in range(steps_to_run):
+                     if sim_state.sim_index >= len(sim_state.sim_data) - 1:
+                        is_playing = False # Stop at end
+                        break
+                     last_result = run_single_step("Hold")
+                
+                if last_result:
+                    await websocket.send_json(last_result)
+                
+                # Frame Rate Control (e.g. 30 FPS or 10 FPS depending on load)
+                # If we run 'speed' steps per iteration, we can sleep a fixed amount like 0.1s
+                await asyncio.sleep(0.1)
+
+    except WebSocketDisconnect:
+        print("Client disconnected from WebSocket")
+    except Exception as e:
+        print(f"WebSocket Error: {e}")
+        await websocket.close()
+

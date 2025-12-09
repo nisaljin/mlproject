@@ -4,11 +4,14 @@ This project implements a Machine Learning solution for optimizing renewable ene
 
 ## 📂 Project Structure
 
-*   **`src/`**: Source code for data loading, preprocessing, modeling, and the dashboard.
+*   **`src/`**: Core machine learning logic (data loading, preprocessing, model training).
+*   **`backend/`**: FastAPI application serving the ML models and simulation logic.
+*   **`frontend/`**: React-based web dashboard for real-time visualization.
 *   **`notebooks/`**: Jupyter notebooks for experimentation.
 *   **`models/`**: Saved trained models (`.pkl` files).
 *   **`output/`**: Generated EDA plots and reports.
 *   **`dataset/`**: Directory for the Mendeley GPVS-Faults dataset (and generated synthetic data).
+
 
 ## 🚀 Setup Instructions
 
@@ -56,11 +59,22 @@ Train the **Energy Predictor** (Random Forest) and **Balancing Classifier** (XGB
 python src/train_model.py
 ```
 
-### 3. Launch the Dashboard
-Start the interactive Streamlit dashboard to visualize real-time data and model predictions.
+### 3. Launch the Application
+This project now uses a modern web stack (React + FastAPI). The easiest way to run it is via Docker (see below).
+
+To run manually without Docker:
+**1. Start Backend:**
 ```bash
-streamlit run src/dashboard.py
+uvicorn backend.main:app --reload --port 8000
 ```
+**2. Start Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Then visit `http://localhost:5173`.
+
 
 ### 4. Running with Docker 🐳
 For a consistent environment, you can run the entire stack (Frontend + Backend) using Docker.
@@ -68,9 +82,12 @@ See the **[Docker Setup & Usage Guide](DOCKER_README.md)** for detailed instruct
 
 
 ## 📊 Dashboard Features
-*   **Real-Time Simulation:** Toggle the "Enable Real-Time Simulation" checkbox to simulate a live data feed.
-*   **Energy Balance:** Visual comparison of Solar Generation vs. Grid Consumption.
-*   **AI Decision Logic:** Explains *why* the system chose to Charge, Discharge, or Hold.
+*   **Real-Time Simulation:** Controls to Play/Pause simulation and adjust time dilation speed.
+*   **Fault Injection:** Interactively inject electrical faults (F1-F7) into specific PV strings to test system stability.
+*   **Scenario Manager:** Simulate different weather conditions (Sunny, Cloudy, Stormy) to validate energy balancing logic.
+*   **Live Telemetry:** Visualization of Solar Generation, Grid Consumption, and Battery SoC in real-time.
+*   **AI Decision Explainer:** Transparently displays *why* the system chose to Charge, Discharge, or Hold.
+
 
 ## 📝 Technical Report
 For a detailed explanation of the methodology, model performance, and system architecture, please refer to the [Technical Report](technical_report.md).
