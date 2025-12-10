@@ -42,3 +42,4 @@ notebooks/models/*.pkl
 dataset/
 
 .env
+reports/
