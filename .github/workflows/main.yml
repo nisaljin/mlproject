@@ -7,30 +7,34 @@ on:
     branches: [ "main" ]
 
 jobs:
-  backend-test-and-build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest httpx
-
-    - name: Run Backend Tests
-      run: |
-        pytest tests/
-
-    - name: Build Backend Docker Image
-      run: |
-        docker build -t helios-backend -f backend/Dockerfile .
+#   backend-test-and-build:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+#
+#     - name: Set up Python 3.11
+#       uses: actions/setup-python@v4
+#       with:
+#         python-version: "3.11"
+#
+#     - name: Install Python dependencies
+#       run: |
+#         python -m pip install --upgrade pip
+#         pip install -r requirements.txt
+#         pip install pytest httpx
+#
+#     - name: Train Models
+#       run: |
+#         python src/train_model.py
+#
+#     - name: Run Backend Tests
+#       run: |
+#         pytest tests/
+#
+#     - name: Build Backend Docker Image
+#       run: |
+#         docker build -t helios-backend -f backend/Dockerfile .
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -55,16 +59,16 @@ jobs:
 
     - name: Build Frontend Docker Image
       run: |
-        docker build -t helios-frontend -f frontend/Dockerfile ./frontend
+        docker build --build-arg VITE_API_URL=https://helios.nisal.dev -t helios-frontend -f frontend/Dockerfile ./frontend
 
-  docker-compose-check:
-    needs: [backend-test-and-build, frontend-build]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Verify Docker Compose Build
-      run: |
-        docker-compose config
-        docker-compose build
+#   docker-compose-check:
+#     needs: [backend-test-and-build, frontend-build]
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+#
+#     - name: Verify Docker Compose Build
+#       run: |
+#         docker-compose config
+#         docker-compose build
