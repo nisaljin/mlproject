@@ -40,8 +40,12 @@ def load_models():
         # New: Separate Scaler for Balancing (14 dims)
         if os.path.exists(os.path.join(models_dir, 'scaler_balancing.pkl')):
             models['scaler_balancing'] = joblib.load(os.path.join(models_dir, 'scaler_balancing.pkl'))
+        elif os.path.exists(os.path.join(models_dir, 'scaler_clf.pkl')):
+            # Fallback: scaler_clf.pkl is the legacy name for the balancing scaler
+            models['scaler_balancing'] = joblib.load(os.path.join(models_dir, 'scaler_clf.pkl'))
         
-        # New: Fault Scaler (36 dims) - defaults to 'scaler_clf.pkl'
+        # New: Fault Scaler (36 dims) - defaults to 'scaler_clf.pkl' if not consumed above, 
+        # or we just load it again if needed (though it seems unused for faults currently)
         if os.path.exists(os.path.join(models_dir, 'scaler_clf.pkl')):
             models['scaler_clf'] = joblib.load(os.path.join(models_dir, 'scaler_clf.pkl'))
         if os.path.exists(os.path.join(models_dir, 'stability_monitor.pkl')):

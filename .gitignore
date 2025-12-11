@@ -42,6 +42,7 @@ notebooks/models/*.pkl
 dataset/
 
 .env
-reports/
+
 documents/
-Test
+reports/
+# Test/
